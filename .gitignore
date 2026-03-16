@@ -1,0 +1,30 @@
+# Gems
+*.gem
+eksa-framework.gemspec
+
+# Bundler
+/.bundle/
+/vendor/bundle/
+
+# Environment
+.env
+.env.local
+
+# Logs and temporary files
+/log/*
+!/log/.keep
+/tmp/*
+!/tmp/.keep
+
+# Database
+db/*.db
+!db/.keep
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

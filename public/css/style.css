@@ -1,0 +1,111 @@
+/* public/css/style.css */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #f8fafc; /* Abu-abu sangat muda yang bersih */
+    font-family: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    color: #1e293b;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+
+ul.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 20px;
+}
+
+.modern-nav {
+    background: #ffffff;
+    padding: 1rem 10%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.brand {
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: #4f46e5; /* Indigo modern */
+    letter-spacing: -1px;
+}
+
+.modern-card {
+    background: white;
+    padding: 3.5rem 2.5rem;
+    border-radius: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    max-width: 500px;
+    width: 100%;
+    border: 1px solid #f1f5f9;
+    position: relative;
+    overflow: hidden;
+}
+
+.modern-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, #4f46e5, #ec4899); /* Gradien Indigo ke Pink */
+}
+
+h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    color: #0f172a;
+    letter-spacing: -0.025em;
+}
+
+p {
+    color: #64748b;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: #eef2ff;
+    color: #4f46e5;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+code {
+    background: #f1f5f9;
+    padding: 3px 6px;
+    border-radius: 6px;
+    color: #e11d48;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9em;
+}
+
+.modern-footer {
+    padding: 2rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #94a3b8;
+}

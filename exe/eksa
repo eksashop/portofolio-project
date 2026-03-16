@@ -1,0 +1,256 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'fileutils'
+
+def usage
+  puts "\n✨ Eksa Framework CLI ✨"
+  puts "-----------------------------"
+  puts "Usage:"
+  puts "  eksa init              - Inisialisasi project baru"
+  puts "  eksa g controller NAME - Generate controller baru"
+  puts "  eksa g model NAME      - Generate model baru"
+  puts "  eksa g post TITLE      - Post baru [args: --category, --author, --image]"
+  puts "  eksa feature ACTION F  - Toggle fitur: action=enable/disable, F=cms/auth"
+  puts "  eksa reset-password USR PWD - Reset password akun admin"
+  puts "  eksa run               - Jalankan server aplikasi"
+  puts "-----------------------------\n"
+end
+
+def init_project
+  gem_root = File.expand_path("../..", __FILE__)
+  target_dir = Dir.pwd
+  
+  puts "🚀 Menginisialisasi project di: #{target_dir}"
+  
+  items_to_init = ['app', 'lib', 'public', 'db', 'spec', '_posts', 'config.ru', 'Gemfile', 'README.md']
+  
+  items_to_init.each do |item|
+    source = File.join(gem_root, item)
+    destination = File.join(target_dir, item)
+    
+    if File.exist?(source)
+      if File.directory?(source)
+        FileUtils.cp_r(source, target_dir)
+        puts "  [OK] Folder '#{item}' berhasil disalin."
+      else
+        FileUtils.cp(source, destination)
+        puts "  [OK] File '#{item}' berhasil disalin."
+      end
+    elsif item == 'db'
+      FileUtils.mkdir_p(destination)
+      puts "  [OK] Folder 'db' baru berhasil dibuat."
+    end
+  end
+  puts "\n✅ Inisialisasi Selesai!"
+end
+
+def generate_controller(name)
+  name = name.downcase
+  class_name = name.split('_').map(&:capitalize).join
+  file_path = "app/controllers/#{name}_controller.rb"
+  view_dir = "app/views/#{name}"
+
+  puts "🛠️ Generating controller: #{class_name}Controller"
+
+  content = <<~RUBY
+    class #{class_name}Controller < Eksa::Controller
+      def index
+        render "#{name}/index"
+      end
+    end
+  RUBY
+
+  FileUtils.mkdir_p("app/controllers")
+  File.write(file_path, content)
+  puts "  [OK] Created #{file_path}"
+
+  FileUtils.mkdir_p(view_dir)
+  index_view = File.join(view_dir, "index.html.erb")
+  File.write(index_view, "<h1>#{class_name}#index</h1>\n<p>Temukan saya di #{index_view}</p>")
+  puts "  [OK] Created #{index_view}"
+
+  # Update config.ru with a new route
+  if File.exist?('config.ru')
+    config_content = File.read('config.ru')
+    route_line = %(app.add_route "/#{name}", #{class_name}Controller, :index)
+    
+    unless config_content.include?(route_line)
+      if config_content.match?(/run app/)
+        new_content = config_content.gsub(/run app/, "#{route_line}\n\nrun app")
+        File.write('config.ru', new_content)
+        puts "  [OK] Added route to config.ru"
+      else
+        File.open('config.ru', 'a') { |f| f.puts "\n#{route_line}" }
+        puts "  [OK] Appended route to config.ru"
+      end
+    end
+  end
+end
+
+def generate_model(name)
+  name = name.downcase
+  class_name = name.split('_').map(&:capitalize).join
+  file_path = "app/models/#{name}.rb"
+
+  puts "🛠️ Generating model: #{class_name}"
+
+  content = <<~RUBY
+    class #{class_name}
+      include Mongoid::Document
+      include Mongoid::Timestamps
+
+      # field :title, type: String
+      # field :content, type: String
+    end
+  RUBY
+
+  FileUtils.mkdir_p("app/models")
+  File.write(file_path, content)
+  puts "  [OK] Created #{file_path}"
+end
+
+def generate_post(title, options = {})
+  FileUtils.mkdir_p("_posts")
+  date = Time.now.strftime("%Y-%m-%d")
+  slug = title.downcase.strip.gsub(' ', '-').gsub(/[^\w-]/, '')
+  filename = "_posts/#{date}-#{slug}.md"
+
+  author = options[:author] || ""
+  category = options[:category] || "Uncategorized"
+  image = options[:image] || ""
+
+  content = <<~MARKDOWN
+    ---
+    title: "#{title}"
+    date: #{Time.now.strftime("%Y-%m-%d %H:%M:%S")}
+    author: "#{author}"
+    category: "#{category}"
+    image: "#{image}"
+    ---
+
+    Tulis konten blog Anda di sini...
+  MARKDOWN
+
+  File.write(filename, content)
+  puts "🛠️ Generating post: #{title}"
+  puts "  [OK] Created #{filename}"
+end
+
+def toggle_feature(action, feature)
+  valid_features = ['cms', 'auth']
+  
+  unless valid_features.include?(feature)
+    puts "❌ Error: Fitur tidak dikenali. Pilihan: #{valid_features.join(', ')}"
+    return
+  end
+  
+  unless ['enable', 'disable'].include?(action)
+    puts "❌ Error: Aksi tidak dikenali. Gunakan 'enable' atau 'disable'."
+    return
+  end
+  
+  config_path = File.join(Dir.pwd, '.eksa.json')
+  
+  begin
+    config = File.exist?(config_path) ? JSON.parse(File.read(config_path)) : { 'cms' => false, 'auth' => false }
+  rescue JSON::ParserError
+    config = { 'cms' => false, 'auth' => false }
+  end
+  
+  config[feature] = (action == 'enable')
+  
+  File.write(config_path, JSON.pretty_generate(config))
+  
+  status_color = action == 'enable' ? "✅ Aktif" : "🚫 Nonaktif"
+  puts "⚙️ Fitur '#{feature}' berhasil di #{status_color}."
+  
+  if action == 'enable' && feature == 'cms'
+    puts "   Tip: Pastikan Anda juga mengaktifkan 'auth' agar CMS Anda aman."
+  end
+end
+
+def reset_password(username, password)
+  require 'bcrypt'
+  require 'mongoid'
+  require './app/models/user'
+
+  # Load Mongoid config if not already loaded
+  begin
+    Mongoid.load!("config/mongoid.yml", :development)
+  rescue StandardError => e
+    puts "❌ Error: Gagal memuat konfigurasi Mongoid: #{e.message}"
+    return
+  end
+
+  user = User.where(username: username).first
+  
+  if user
+    user.password_hash = BCrypt::Password.create(password)
+    if user.save
+      puts "✅ Akses dipulihkan! Password untuk admin '#{username}' berhasil diubah."
+    else
+      puts "❌ Error: Gagal menyimpan password baru."
+    end
+  else
+    puts "❌ Error: User '#{username}' tidak ditemukan dalam database."
+  end
+end
+
+def start_server
+  if File.exist?('config.ru')
+    puts "🚀 Memulai Eksa Framework Server..."
+    exec "rackup config.ru"
+  else
+    puts "❌ Error: config.ru tidak ditemukan. Pastikan Anda berada di root project Eksa."
+    exit 1
+  end
+end
+
+command = ARGV.shift
+
+case command
+when 'init'
+  init_project
+when 'run'
+  start_server
+when 'g', 'generate'
+  subcommand = ARGV.shift
+  name = ARGV.shift
+  if subcommand == 'controller' && name
+    generate_controller(name)
+  elsif subcommand == 'model' && name
+    generate_model(name)
+  elsif subcommand == 'post' && name
+    options = {}
+    while (arg = ARGV.shift)
+      case arg
+      when '--category' then options[:category] = ARGV.shift
+      when '--author'   then options[:author] = ARGV.shift
+      when '--image'    then options[:image] = ARGV.shift
+      end
+    end
+    generate_post(name, options)
+  else
+    usage
+  end
+when 'feature'
+  action = ARGV.shift
+  feature = ARGV.shift
+  if action && feature
+    require 'json'
+    toggle_feature(action, feature)
+  else
+    usage
+  end
+when 'reset-password'
+  username = ARGV.shift
+  password = ARGV.shift
+  if username && password
+    reset_password(username, password)
+  else
+    puts "❌ Error: Argumen tidak lengkap. Gunakan: eksa reset-password USERNAME NEW_PASSWORD"
+  end
+else
+  usage
+end

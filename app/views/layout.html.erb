@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <% 
+    scheme = request.env['rack.url_scheme'] || 'https'
+    base_url = "#{scheme}://#{request.host}"
+    current_url = "#{base_url}#{request.path}"
+    
+    title_text = @title || "Project Portfolio | Ishikawa Uta"
+    desc_text = @project ? (@project.description.to_s.gsub(/<[^>]*>/, '')[0..155] + "...") : "web landing page portofolio Ishikawa Uta. Jelajahi karya dan project-project open-source terbaik yang pernah saya kembangkan."
+    img_url = (@project && !@project.image_url.to_s.empty?) ? @project.image_url : "#{base_url}/img/logo.png"
+  %>
+  
+  <title><%= title_text %></title>
+  <meta name="description" content="<%= desc_text %>">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="<%= current_url %>">
+  
+  <meta property="og:title" content="<%= title_text %>">
+  <meta property="og:description" content="<%= desc_text %>">
+  <meta property="og:image" content="<%= img_url %>">
+  <meta property="og:type" content="<%= @project ? 'article' : 'website' %>">
+  <meta property="og:url" content="<%= current_url %>">
+  
+  <% 
+    if @project
+      structured_data = {
+        "@context": "https://schema.org",
+        "@type": "SoftwareSourceCode",
+        "name": @project.title,
+        "description": desc_text,
+        "image": img_url,
+        "author": {
+          "@type": "Person",
+          "name": "Ishikawa Uta"
+        },
+        "url": current_url,
+        "codeRepository": @project.github_url
+      }
+    else
+      structured_data = {
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        "mainEntity": {
+          "@type": "Person",
+          "name": "Ishikawa Uta",
+          "description": "Portofolio Project Ishikawa Uta",
+          "url": base_url,
+          "image": img_url
+        }
+      }
+    end
+  %>
+  <script type="application/ld+json">
+    <%= structured_data.to_json %>
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <link rel="icon" href="/img/logo.png" type="image/png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Prism.js Syntax Highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css">
+  <style>
+    pre[class*="language-"] {
+      border-radius: 1.5rem !important;
+      background: rgba(0, 0, 0, 0.4) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      backdrop-filter: blur(5px);
+      margin: 2rem 0 !important;
+      padding: 1.5rem !important;
+    }
+    .code-wrapper { position: relative; }
+    .copy-btn {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.5rem;
+      border-radius: 0.75rem;
+      color: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: all 0.2s;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .copy-btn:hover { background: rgba(255, 255, 255, 0.2); color: white; }
+    .copy-btn.copied { background: #10b981; color: white; border-color: #34d399; }
+  </style>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at top left, #4f46e5, #764ba2, #2d3748);
+      background-attachment: fixed;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .glass {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .nav-blur {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-link {
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 2px;
+      bottom: -4px;
+      left: 0;
+      background-color: #a5b4fc;
+      transition: width 0.3s ease;
+    }
+    .nav-link:hover::after {
+      width: 100%;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.2);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.5);
+    }
+
+    .custom-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(99, 102, 241, 0.2) rgba(255, 255, 255, 0.02);
+    }
+  </style>
+</head>
+<body class="text-white antialiased">
+  
+  <% if @flash && @flash[:notice] %>
+    <div id="flash-msg" class="fixed top-24 left-1/2 -translate-x-1/2 z-[60] animate__animated animate__fadeInDown">
+      <div class="flex items-center gap-3 bg-emerald-500/90 backdrop-blur-md text-white px-6 py-3 rounded-2xl shadow-2xl border border-emerald-400/50 shadow-emerald-900/40">
+        <i data-lucide="check-circle" class="w-5 h-5"></i>
+        <span class="font-bold text-sm tracking-wide"><%= @flash[:notice] %></span>
+        <button onclick="closeFlash()" class="ml-4 opacity-50 hover:opacity-100 transition">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+    <script>
+      function closeFlash() {
+        const msg = document.getElementById('flash-msg');
+        if(msg) {
+          msg.classList.replace('animate__fadeInDown', 'animate__fadeOutUp');
+          setTimeout(() => msg.remove(), 800);
+        }
+      }
+      // Otomatis tutup setelah 4 detik
+      setTimeout(closeFlash, 4000);
+    </script>
+  <% end %>
+
+  <nav class="nav-blur sticky top-0 z-50 px-6 py-4 flex items-center justify-between animate__animated animate__fadeInDown">
+    <div onclick="window.location.href='/'" class="flex items-center gap-3 group cursor-pointer">
+      <div class="p-2 bg-indigo-500 rounded-xl shadow-lg shadow-indigo-500/50 group-hover:rotate-12 transition-transform">
+        <i data-lucide="layers" class="w-6 h-6"></i>
+      </div>
+      <span class="text-xl font-extrabold tracking-tight">Ishikawa<span class="text-indigo-300">Uta</span></span>
+    </div>
+
+
+
+    <div class="flex items-center gap-4">
+       <a href="https://github.com/IshikawaUta" target="_blank" class="p-2 hover:bg-white/10 rounded-full transition"><i data-lucide="github" class="w-5 h-5"></i></a>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto py-12 px-6 flex-grow animate__animated animate__fadeInUp">
+    <%= @content %>
+  </main>
+
+  <footer class="py-8 text-center text-white/40 text-sm border-t border-white/5">
+    <p>&copy; <%= Time.now.year %> <span class="font-bold text-white/60">IshikawaUta</span>. Made with Eksa Framework.</p>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+  <script>
+    // Inisialisasi ikon Lucide
+    lucide.createIcons();
+
+    // Setup Copy Buttons for Code Blocks
+    document.querySelectorAll('pre').forEach((block) => {
+      // Wrap pre in a container
+      const wrapper = document.createElement('div');
+      wrapper.className = 'code-wrapper';
+      block.parentNode.insertBefore(wrapper, block);
+      wrapper.appendChild(block);
+
+      // Create button
+      const button = document.createElement('button');
+      button.className = 'copy-btn';
+      button.innerHTML = '<i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy';
+      wrapper.appendChild(button);
+
+      button.addEventListener('click', async () => {
+        const text = block.textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          button.classList.add('copied');
+          button.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> Copied!';
+          lucide.createIcons();
+          
+          setTimeout(() => {
+            button.classList.remove('copied');
+            button.innerHTML = '<i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy';
+            lucide.createIcons();
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy!', err);
+        }
+      });
+    });
+    lucide.createIcons();
+  </script>
+</body>
+</html>
